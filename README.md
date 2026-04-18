@@ -1773,7 +1773,7 @@ A: Extensive testing showed 10-40% caused initial stuttering, 70-85% with hyster
 A: Absolutely! Any Bluetooth A2DP audio source works: phones, tablets, Bluetooth speakers in transmit mode, computers, etc.
 
 **Q: Can I stream to my HomePod/AirPlay devices?**  
-A: Not directly - this streams HTTP audio to HTTP-capable players. For AirPlay, you'd need to add shairport-sync or similar on the receiving end.
+A: Yes! Use VLC Player on your Apple device as an AirPlay bridge. Open the stream in VLC (either from Local Network or via `http://airvinyl.local/stream`), then use your device's AirPlay controls to stream to HomePod or other AirPlay speakers. **Note:** Macs can only AirPlay to a single device at a time, while iOS/iPadOS devices can AirPlay to multiple speakers simultaneously (multi-room audio).
 
 ---
 
