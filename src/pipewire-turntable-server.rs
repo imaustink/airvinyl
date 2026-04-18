@@ -148,6 +148,7 @@ fn wav_header() -> [u8; 44] {
 
 /// Stream audio endpoint
 async fn stream_audio(State(buffer): State<AudioBuffer>) -> Response {
+    let start_time = Instant::now();
     info!("New client connected for streaming");
 
     // Wait for prebuffer
@@ -163,12 +164,20 @@ async fn stream_audio(State(buffer): State<AudioBuffer>) -> Response {
         let mut chunk_count = 0u64;
         let mut empty_count = 0u32;
         let mut last_log = Instant::now();
+        let mut last_activity = Instant::now();
 
         loop {
+            // Disconnect detection: if we've been waiting too long, assume client is gone
+            if last_activity.elapsed() > Duration::from_secs(30) {
+                warn!("⚠️  No activity for 30s, assuming client disconnected");
+                break;
+            }
+
             if let Some(data) = buffer.get().await {
                 yield Ok(data);
                 chunk_count += 1;
                 empty_count = 0;
+                last_activity = Instant::now();
 
                 // Log every 100 chunks or every 5 seconds
                 if chunk_count % 100 == 0 || last_log.elapsed() > Duration::from_secs(5) {
@@ -202,6 +211,15 @@ async fn stream_audio(State(buffer): State<AudioBuffer>) -> Response {
                 tokio::time::sleep(Duration::from_millis(100)).await;
             }
         }
+
+        // Log when stream ends
+        let duration = start_time.elapsed();
+        info!(
+            "🔌 Client disconnected after {:.1}s ({} chunks sent, {:.1}MB)",
+            duration.as_secs_f64(),
+            chunk_count,
+            (chunk_count * CHUNK_SIZE as u64) as f32 / (1024.0 * 1024.0)
+        );
     };
 
     let body = axum::body::Body::from_stream(audio_stream);
@@ -210,10 +228,13 @@ async fn stream_audio(State(buffer): State<AudioBuffer>) -> Response {
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "audio/wav")
         .header(header::CACHE_CONTROL, "no-cache")
-        .header(header::CONNECTION, "close")
+        .header(header::CONNECTION, "keep-alive")
+        .header("X-Content-Type-Options", "nosniff")
         .body(body)
         .unwrap()
 }
+
+    
 
 /// Status endpoint
 async fn status(State(buffer): State<AudioBuffer>) -> impl IntoResponse {
@@ -313,8 +334,9 @@ async fn start_bluealsa_capture(buffer: &AudioBuffer) -> Result<(), Box<dyn std:
     use tokio::process::Command;
     use tokio::io::AsyncReadExt;
 
-    // Find Bluetooth source device (use target MAC if set, otherwise auto-discover)
-    let target_mac = get_target_device().unwrap_or_else(|| "F4:04:4C:1A:E5:B9".to_string());
+    // Get target MAC address from environment variable (required)
+    let target_mac = get_target_device()
+        .ok_or("BLUETOOTH_MAC environment variable not set. Please configure your Bluetooth device MAC address.")?;
     info!("✅ Targeting Bluetooth device: {}", target_mac);
 
     // Build BlueALSA PCM path: /org/bluealsa/hci0/dev_XX_XX_XX_XX_XX_XX/a2dpsnk/source

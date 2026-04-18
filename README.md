@@ -391,13 +391,13 @@ bluetoothctl show | grep -E "(Discoverable|Pairable|Class)"
    
    # Wait for device to appear in scan results
    # You'll see something like:
-   # [NEW] Device F4:04:4C:1A:E5:B9 AT-TT
+   # [NEW] Device AA:BB:CC:DD:EE:FF AT-TT
    
    # List all discovered devices
    bluetoothctl devices
    
    # ⚠️ IMMEDIATELY trust the device (replace with your device's MAC)
-   bluetoothctl trust F4:04:4C:1A:E5:B9
+   bluetoothctl trust <YOUR_DEVICE_MAC>
    
    # Stop scanning
    bluetoothctl scan off
@@ -410,8 +410,8 @@ bluetoothctl show | grep -E "(Discoverable|Pairable|Class)"
 
 4. **Verify connection and trust status**
    ```bash
-   # Check device info (replace MAC address)
-   bluetoothctl info F4:04:4C:1A:E5:B9 | grep -E "(Connected|Trusted)"
+   # Check device info (replace <YOUR_DEVICE_MAC> with your actual MAC address)
+   bluetoothctl info <YOUR_DEVICE_MAC> | grep -E "(Connected|Trusted)"
    # Should show:
    #   Trusted: yes
    #   Connected: yes
@@ -497,8 +497,8 @@ source $HOME/.cargo/env
 cargo install cross --git https://github.com/cross-rs/cross
 
 # Clone repository
-git clone https://github.com/yourusername/bluetooth-to-airplay.git
-cd bluetooth-to-airplay
+git clone https://github.com/yourusername/airvinyl.git
+cd airvinyl
 
 # Build for Raspberry Pi (64-bit ARM)
 cross build --target aarch64-unknown-linux-gnu --release
@@ -524,8 +524,8 @@ source $HOME/.cargo/env
 sudo apt install -y pkg-config build-essential
 
 # Clone repository
-git clone https://github.com/yourusername/bluetooth-to-airplay.git
-cd bluetooth-to-airplay
+git clone git@github.com:imaustink/airvinyl.git
+cd airvinyl
 
 # Build
 cargo build --release
@@ -556,6 +556,7 @@ Wants=bluealsa.service
 Type=simple
 User=pi
 WorkingDirectory=/home/pi
+Environment="BLUETOOTH_MAC=AA:BB:CC:DD:EE:FF"
 Environment="RUST_LOG=info"
 ExecStart=/home/pi/pipewire-turntable-server
 Restart=always
@@ -566,6 +567,14 @@ AmbientCapabilities=CAP_NET_BIND_SERVICE
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# IMPORTANT: Replace AA:BB:CC:DD:EE:FF with your device's MAC address
+# Find your device MAC address:
+bluetoothctl devices
+
+# Edit the service file with your device's actual MAC address:
+sudo nano /etc/systemd/system/turntable-server.service
+# Update the BLUETOOTH_MAC line with your device's MAC
 
 # Reload systemd
 sudo systemctl daemon-reload
@@ -581,6 +590,7 @@ sudo systemctl status turntable-server
 ```
 
 **Service configuration notes:**
+- `BLUETOOTH_MAC` - **Required**. Replace `AA:BB:CC:DD:EE:FF` with your Bluetooth device's MAC address
 - `User=pi` - Change to your username if different
 - `Nice=-10` - Higher priority for audio processing
 - `AmbientCapabilities=CAP_NET_BIND_SERVICE` - Allows non-root user to bind to port 80
@@ -1075,15 +1085,15 @@ sudo nano /etc/systemd/system/turntable-server.service
 ```
 
 **Available variables:**
-- `BLUETOOTH_MAC` - Target specific device (e.g., `F4:04:4C:1A:E5:B9`)
-  - If not set, auto-discovers first available A2DP device
+- `BLUETOOTH_MAC` - **Required**. MAC address of your Bluetooth device (e.g., `AA:BB:CC:DD:EE:FF`)
+  - Find your device MAC with: `bluetoothctl devices`
 - `RUST_LOG` - Logging level: `error`, `warn`, `info`, `debug`, `trace`
 
 **Example:**
 ```ini
 [Service]
-Environment="BLUETOOTH_MAC=F4:04:4C:1A:E5:B9"
-Environment="RUST_LOG=debug"
+Environment="BLUETOOTH_MAC=AA:BB:CC:DD:EE:FF"  # Replace with your device's MAC
+Environment="RUST_LOG=info"
 ```
 
 After editing, reload and restart:
@@ -1515,7 +1525,7 @@ To modify buffer size, port, or other constants:
 ```bash
 # Clone the repository
 git clone <repo>
-cd bluetooth-to-airplay
+cd airvinyl
 
 # Edit src/pipewire-turntable-server.rs to customize:
 # - Buffer size: BUFFER_SIZE_MB constant
@@ -1681,7 +1691,7 @@ Media Player (VLC, browsers, etc.)
 ## 📚 Repository Structure
 
 ```
-bluetooth-to-airplay/
+airvinyl/
 ├── src/
 │   └── pipewire-turntable-server.rs    # Main Rust implementation
 ├── config/

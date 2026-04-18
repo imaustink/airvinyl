@@ -7,6 +7,9 @@ Wants=pipewire.service pipewire-pulse.service
 Type=simple
 User=dietpi
 WorkingDirectory=/home/dietpi
+# IMPORTANT: Replace AA:BB:CC:DD:EE:FF with your Bluetooth device's MAC address
+# Find your device MAC with: bluetoothctl devices
+Environment="BLUETOOTH_MAC=AA:BB:CC:DD:EE:FF"
 Environment="RUST_LOG=info"
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
 Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus"
